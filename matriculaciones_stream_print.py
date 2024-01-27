@@ -16,12 +16,13 @@ def main():
     try:
         year = int(date_chunks[0])
         month = int(date_chunks[1])
+        day = int(date_chunks[2]) if len(date_chunks) == 3 else None
     except (KeyError, ValueError):
         print("Invalid date")
         exit(1)
 
     print("Pulsa Enter tras cada matriculación para ver la siguiente:")
-    for matriculacion_str in DGTDownloader().stream_matriculaciones_by_date(year=year, month=month):
+    for matriculacion_str in DGTDownloader().stream_matriculaciones_by_date(year=year, month=month, day=day):
         if matriculacion := parse_matriculaciones_line(matriculacion_str):
             try:
                 input(matriculacion)

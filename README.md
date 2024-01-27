@@ -15,13 +15,15 @@
 #### CLI
 
 El script [matriculaciones_download](matriculaciones_download.py) descarga y extrae el dataset de matriculaciones, tal y como se presenta en el [portal de microdatos](https://sedeapl.dgt.gob.es/WEB_IEST_CONSULTA/subcategoria.faces).
-Es necesario indicarle un mes del que descargar datos.
+Es necesario indicarle un mes o día del que descargar datos.
 
 ```bash
-python matriculaciones_download.py "año-mes" --output="archivo-salida (opcional)"
+python matriculaciones_download.py "año-mes"
+python matriculaciones_download.py "año-mes-dia" --output="archivo-salida (opcional)"
 
 # Ejemplos:
 python matriculaciones_download.py "2023-01"
+python matriculaciones_download.py "2023-04-14"
 python matriculaciones_download.py "2023-10" --output="/home/yo/Descargas/2023-Octubre.txt"
 
 # Si no se indica archivo de salida, se descargará en: "./matriculaciones-{año}-{mes}.txt".
@@ -55,4 +57,5 @@ De esta forma, se puede procesar cada matriculación al vuelo.
 
 ```bash
 python matriculaciones_stream_print.py "2023-10"
+python matriculaciones_stream_print.py "2023-06-09"
 ```

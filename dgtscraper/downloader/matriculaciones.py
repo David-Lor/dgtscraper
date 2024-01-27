@@ -1,5 +1,6 @@
 import pathlib
 import tempfile
+import datetime
 from typing import Optional, Union, Generator
 
 import bs4
@@ -44,7 +45,6 @@ class DGTDownloader:
                 path = path / filename
 
         path.touch(exist_ok=True)
-
         with open(path, "w") as output_file:
             for chunk in self.stream_matriculaciones_by_date(year=year, month=month, day=day):
                 output_file.write(chunk)
@@ -62,22 +62,23 @@ class DGTDownloader:
         self._get_viewstate_2_vehiculos_matriculaciones()
         self._get_viewstate_3_microdatos()
 
-        filtro_diario = ""
-        if day:
-            filtro_diario = f"{day:02d}/{month:02d}/{year}"
-
         payload = {
             "configuracionInfPersonalizado": "configuracionInfPersonalizado",
-            "configuracionInfPersonalizado:filtroDiario": filtro_diario,
+            "configuracionInfPersonalizado:filtroDiario": "",
             "configuracionInfPersonalizado:filtroMesAnyo": str(year),
+            "configuracionInfPersonalizado:filtroMesMes": str(month),
             "javax.faces.ViewState": self._last_viewstate,
         }
+
         if day:
             payload["configuracionInfPersonalizado:j_id115"] = "Descargar"
-            payload["configuracionInfPersonalizado:filtroMesMes"] = "1"
+            payload["configuracionInfPersonalizado:filtroDiario"] = f"{day:02d}/{month:02d}/{year}"
+            filtro_year = year
+            if filtro_year == datetime.date.today().year:
+                filtro_year -= 1
+            payload["configuracionInfPersonalizado:filtroMesAnyo"] = str(filtro_year)
         else:
             payload["configuracionInfPersonalizado:j_id131"] = "Descargar"
-            payload["configuracionInfPersonalizado:filtroMesMes"] = str(month)
 
         response = self.session.post(
             "https://sedeapl.dgt.gob.es/WEB_IEST_CONSULTA/microdatos.faces",
