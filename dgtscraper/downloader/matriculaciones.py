@@ -55,7 +55,7 @@ class DGTDownloader:
             year: int,
             month: int,
             day: Optional[int] = None,
-    ):
+    ) -> Generator[str, None, None]:
         self._get_viewstate_0()
         self._get_viewstate_1_vehiculos()
         self._get_viewstate_2_vehiculos_matriculaciones()
@@ -88,7 +88,7 @@ class DGTDownloader:
         # TODO Parsear posibles errores (en el HTML se imprime el error)
 
         for chunk in self._unzip_stream_response(response):
-            yield chunk
+            yield chunk.decode("iso-8859-1")
 
     def _get_viewstate_0(self):
         response = self.session.get("https://sedeapl.dgt.gob.es/WEB_IEST_CONSULTA/categoria.faces")
@@ -135,12 +135,20 @@ class DGTDownloader:
         self._last_viewstate = parser.find("input", {"name": "javax.faces.ViewState"}).get("value")
         return self._last_viewstate
 
-    def _unzip_stream_response(self, response: requests.Response) -> Generator[str, None, None]:
+    def _unzip_stream_response(self, response: requests.Response) -> Generator[bytes, None, None]:
         files_read = 0
-        for file_name, file_size, file_chunks in stream_unzip(response.iter_content(chunk_size=self.unzip_chunk_size)):
+        for _, _, file_chunks in stream_unzip(response.iter_content(chunk_size=self.unzip_chunk_size)):
             if files_read > 0:
                 break
 
             files_read += 1
+            buffer = b""
             for chunk in file_chunks:  # type: bytes
-                yield chunk.decode("iso-8859-1")
+                buffer += chunk
+                while b"\n" in buffer:
+                    line, buffer = buffer.split(b"\n", 1)
+                    line += b"\n"
+                    yield line
+
+            if buffer:
+                yield buffer
