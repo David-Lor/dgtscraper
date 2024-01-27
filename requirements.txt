@@ -1,0 +1,5 @@
+pydantic==1.10.9
+class-doc==0.2.6
+requests==2.31.0
+beautifulsoup4==4.12.2
+stream-unzip==0.0.86
