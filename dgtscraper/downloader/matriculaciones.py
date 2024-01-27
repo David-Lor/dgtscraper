@@ -11,6 +11,7 @@ class DGTDownloader:
     def __init__(self):
         self.unzip_chunk_size = 65536
         self.tmp_path = pathlib.Path(tempfile.gettempdir()) / "dgtparser"
+        self.bs4_features = "html.parser"
 
         self.tmp_path.mkdir(exist_ok=True)
         self.session = requests.Session()
@@ -131,7 +132,7 @@ class DGTDownloader:
         self._parse_viewstate(response)
 
     def _parse_viewstate(self, response: requests.Response) -> str:
-        parser = bs4.BeautifulSoup(response.text)
+        parser = bs4.BeautifulSoup(response.text, features=self.bs4_features)
         self._last_viewstate = parser.find("input", {"name": "javax.faces.ViewState"}).get("value")
         return self._last_viewstate
 
