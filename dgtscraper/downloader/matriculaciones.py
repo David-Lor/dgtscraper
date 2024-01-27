@@ -85,9 +85,7 @@ class DGTDownloader:
             data=payload,
             stream=True,
         )
-        response.raise_for_status()
-
-        # TODO Parsear posibles errores (en el HTML se imprime el error)
+        self._validate_response(response)
 
         for chunk in self._unzip_stream_response(response):
             yield chunk.decode("iso-8859-1")
@@ -132,10 +130,27 @@ class DGTDownloader:
         )
         self._parse_viewstate(response)
 
+    def _validate_response(self, response: requests.Response):
+        response.raise_for_status()
+        content_type = response.headers.get("Content-Type", "")
+        if "zip" in content_type:
+            return
+        if "html" not in content_type:
+            raise ValueError(f"Unknown response content type ({content_type})")
+
+        error = self._parse_error(response) or "Unknown"
+        raise ValueError(f"DGT Error: {error}")
+
     def _parse_viewstate(self, response: requests.Response) -> str:
         parser = bs4.BeautifulSoup(response.text, features=self.bs4_features)
         self._last_viewstate = parser.find("input", {"name": "javax.faces.ViewState"}).get("value")
         return self._last_viewstate
+
+    def _parse_error(self, response: requests.Response) -> str:
+        parser = bs4.BeautifulSoup(response.text, features=self.bs4_features)
+        error_li = parser.find("li", {"class": "msgError"})
+        if error_li:
+            return error_li.text
 
     def _unzip_stream_response(self, response: requests.Response) -> Generator[bytes, None, None]:
         files_read = 0
