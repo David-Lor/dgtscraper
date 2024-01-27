@@ -2,6 +2,12 @@
 
 **Utilidad para descargar y parsear [datasets de matriculaciones de la Dirección General de Tráfico](https://sedeapl.dgt.gob.es/WEB_IEST_CONSULTA/subcategoria.faces)**
 
+## Requisitos
+
+- Python 3.10 (versiones anteriores podrían funcionar pero no se asegura compatibilidad)
+- Probado bajo GNU/Linux (en otros sistemas, los comandos de ejemplo podrían variar)
+- Dependencias en [requirements.txt](requirements.txt)
+
 ## Matriculaciones
 
 ### Descargar
