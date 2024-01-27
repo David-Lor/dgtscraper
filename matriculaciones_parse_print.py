@@ -12,10 +12,11 @@ def main():
     with open(args.file, "r") as f:
         print("Pulsa Enter tras cada matriculación para ver la siguiente:")
         for result in parse_matriculaciones_file(f):
-            try:
-                input(result)
-            except (KeyboardInterrupt, InterruptedError):
-                break
+            if result:
+                try:
+                    input(result)
+                except (KeyboardInterrupt, InterruptedError):
+                    break
 
 
 if __name__ == '__main__':

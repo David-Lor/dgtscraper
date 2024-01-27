@@ -37,3 +37,16 @@ debidamente parseadas.
 ```bash
 python matriculaciones_parse_print.py "/home/yo/Descargas/2023-Octubre.txt"
 ```
+
+### Stream
+
+Adicionalmente, se pueden obtener las matriculaciones una a una (línea a línea), sin tener que descargar y descomprimir todo el dataset.
+
+#### CLI
+
+El script [matriculaciones_stream_print](matriculaciones_stream_print.py) lee y descomprime en tiempo real (sin tener que descargar y descomprimir todo el dataset) los datos de matriculaciones.
+De esta forma, se puede procesar cada matriculación al vuelo.
+
+```bash
+python matriculaciones_stream_print.py "2023-10"
+```

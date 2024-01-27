@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 import pydantic
 
@@ -30,7 +30,7 @@ class CampoMetadata(pydantic.BaseModel):
 
 class ParseError(pydantic.BaseModel):
     exception: Exception
-    line_number: int
+    line_number: Optional[int] = None
     line_content: str
     parsed_fields: dict
 

@@ -1,4 +1,4 @@
-from typing import Generator, Union, TextIO
+from typing import Generator, Union, Optional, TextIO
 
 from ..models.matriculaciones import Matriculacion
 from ..models.common import ParseError
@@ -8,25 +8,29 @@ def parse_matriculaciones_file(file: TextIO) -> Generator[Union[Matriculacion, P
     i = 0
     for line in file:
         i += 1
-        if not line or line.startswith("Vehículos matriculados"):
-            continue
+        yield parse_matriculaciones_line(line, i)
 
-        kwargs = _parse_matriculaciones_line_to_kwargs(line)
-        try:
-            if not kwargs["bastidor"].strip():
-                # Ignorar matriculaciones sin bastidor
-                # TODO Parametrizar posibilidad de obtener estas matriculaciones con un valor generico para el bastidor
-                continue
 
-            yield Matriculacion(**kwargs)
+def parse_matriculaciones_line(line: str, _line_number: Optional[int] = None) -> Union[Matriculacion, ParseError, None]:
+    if not line or line.startswith("Vehículos matriculados"):
+        return None
 
-        except Exception as ex:
-            yield ParseError(
-                exception=ex,
-                line_number=i,
-                line_content=line,
-                parsed_fields=kwargs,
-            )
+    kwargs = _parse_matriculaciones_line_to_kwargs(line)
+    try:
+        if not kwargs["bastidor"].strip():
+            # Ignorar matriculaciones sin bastidor
+            # TODO Parametrizar posibilidad de obtener estas matriculaciones con un valor generico para el bastidor
+            return None
+
+        return Matriculacion(**kwargs)
+
+    except Exception as ex:
+        return ParseError(
+            exception=ex,
+            line_number=_line_number,
+            line_content=line,
+            parsed_fields=kwargs,
+        )
 
 
 def _parse_matriculaciones_line_to_kwargs(line: str) -> dict:
