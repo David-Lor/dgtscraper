@@ -67,21 +67,27 @@ class DGTDownloader:
 
         payload = {
             "configuracionInfPersonalizado": "configuracionInfPersonalizado",
-            "configuracionInfPersonalizado:filtroDiario": "",
-            "configuracionInfPersonalizado:filtroMesAnyo": str(year),
-            "configuracionInfPersonalizado:filtroMesMes": str(month),
             "javax.faces.ViewState": self._last_viewstate,
         }
 
+        # download by day
         if day:
-            payload["configuracionInfPersonalizado:j_id115"] = "Descargar"
-            payload["configuracionInfPersonalizado:filtroDiario"] = f"{day:02d}/{month:02d}/{year}"
-            filtro_year = year
-            if filtro_year == datetime.date.today().year:
-                filtro_year -= 1
-            payload["configuracionInfPersonalizado:filtroMesAnyo"] = str(filtro_year)
+            prev_month = datetime.date.today().replace(day=1) - datetime.timedelta(days=1)
+            payload.update({
+                "configuracionInfPersonalizado:j_id115": "Descargar",
+                "configuracionInfPersonalizado:filtroDiario": f"{day:02d}/{month:02d}/{year}",
+                "configuracionInfPersonalizado:filtroMesMes": str(prev_month.month),
+                "configuracionInfPersonalizado:filtroMesAnyo": str(prev_month.year),
+            })
+
+        # download by month
         else:
-            payload["configuracionInfPersonalizado:j_id131"] = "Descargar"
+            payload.update({
+                "configuracionInfPersonalizado:j_id131": "Descargar",
+                "configuracionInfPersonalizado:filtroDiario": "",
+                "configuracionInfPersonalizado:filtroMesMes": str(month),
+                "configuracionInfPersonalizado:filtroMesAnyo": str(year),
+            })
 
         response = self.session.post(
             "https://sedeapl.dgt.gob.es/WEB_IEST_CONSULTA/microdatos.faces",
@@ -137,6 +143,7 @@ class DGTDownloader:
         """Called after choosing a year, for filtering by month.
         """
         payload = {
+            "": "",
             "AJAXREQUEST": "_viewRoot",
             "configuracionInfPersonalizado": "configuracionInfPersonalizado",
             "configuracionInfPersonalizado:filtroDiario": "",

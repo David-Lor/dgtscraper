@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import json
 
@@ -5,7 +6,7 @@ import pytest
 
 from dgtscraper.downloader import DGTDownloader
 from dgtscraper.parser import parse_matriculaciones_line
-from dgtscraper.models import Matriculacion
+from dgtscraper.models import Matriculacion, ParseError
 
 
 def matriculacion_to_sorted_json(matriculacion: Matriculacion) -> str:
@@ -15,7 +16,6 @@ def matriculacion_to_sorted_json(matriculacion: Matriculacion) -> str:
 
 
 @pytest.mark.parametrize("year,month,day,expected_md5,expected_count", [
-    # matriculaciones by month
     pytest.param(2024, 1, None, "739aa8771557bbc25eb44ffe0bed2596", 117036, id="2024/01"),
     pytest.param(2023, 12, None, "a3244af834ade58f73082a2c2a0c46f5", 127658, id="2023/12"),
     pytest.param(2023, 10, None, "5fee9a71f5ff31299083f12fc9859d07", 141045, id="2023/10"),
@@ -42,3 +42,24 @@ def test_matriculaciones_stream_to_md5(year, month, day, expected_md5, expected_
 
     assert parsed_count == expected_count
     assert md5.hexdigest() == expected_md5
+
+
+def test_matriculaciones_per_day():
+    """Download matriculaciones from a few days ago.
+    Downloading by day returns provisional data, is not always available and gets removed periodically.
+    Can only assert that a few matriculaciones are returned, and no parse errors occurred.
+    """
+    date = datetime.date.today() - datetime.timedelta(days=3)
+    scraper = DGTDownloader()
+    parsed_count = 0
+    error_count = 0
+
+    for line in scraper.stream_matriculaciones_by_date(year=date.year, month=date.month, day=date.day):
+        matriculacion = parse_matriculaciones_line(line)
+        if isinstance(matriculacion, Matriculacion):
+            parsed_count += 1
+        elif isinstance(matriculacion, ParseError):
+            error_count += 1
+
+    assert parsed_count > 100
+    assert error_count == 0
