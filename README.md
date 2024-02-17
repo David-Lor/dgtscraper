@@ -59,3 +59,12 @@ De esta forma, se puede procesar cada matriculación al vuelo.
 python matriculaciones_stream_print.py "2023-10"
 python matriculaciones_stream_print.py "2023-06-09"
 ```
+
+## Changelog
+
+- 0.0.2:
+  - Fix: corrección en descarga de matriculaciones por mes (añadido nuevo viewstate)
+  - Fix: corrección en descarga de matriculaciones por día
+  - Fix: no ignorar matriculaciones sin bastidor al parsear
+- 0.0.1:
+  - Versión inicial: descarga y parseo de matriculaciones
