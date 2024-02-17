@@ -7,10 +7,12 @@ import bs4
 import requests
 from stream_unzip import stream_unzip
 
+from .. import const
+
 
 class DGTDownloader:
     def __init__(self):
-        self.unzip_chunk_size = 65536
+        self.unzip_chunk_size = const.DEFAULT_DOWNLOAD_CHUNK_SIZE
         self.tmp_path = pathlib.Path(tempfile.gettempdir()) / "dgtparser"
         self.bs4_features = "html.parser"
 
@@ -89,7 +91,7 @@ class DGTDownloader:
         self._validate_response(response)
 
         for chunk in self._unzip_stream_response(response):
-            yield chunk.decode("iso-8859-1")
+            yield chunk.decode(const.FILE_ENCODING)
 
     def _get_viewstate_0(self):
         response = self.session.get("https://sedeapl.dgt.gob.es/WEB_IEST_CONSULTA/categoria.faces")
