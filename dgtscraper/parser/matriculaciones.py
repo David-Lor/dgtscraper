@@ -17,11 +17,6 @@ def parse_matriculaciones_line(line: str, _line_number: Optional[int] = None) ->
 
     kwargs = _parse_matriculaciones_line_to_kwargs(line)
     try:
-        if not kwargs["bastidor"].strip():
-            # Ignorar matriculaciones sin bastidor
-            # TODO Parametrizar posibilidad de obtener estas matriculaciones con un valor generico para el bastidor
-            return None
-
         return Matriculacion(**kwargs)
 
     except Exception as ex:

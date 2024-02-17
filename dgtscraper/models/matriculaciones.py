@@ -67,7 +67,7 @@ class Matriculacion(pydantic.BaseModel):
     """
 
     bastidor: str
-    """Número de bastidor.
+    """Número de bastidor. Puede estar vacío.
     clave=BASTIDOR_ITV
     posicion=7
     longitud=21
