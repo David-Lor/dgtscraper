@@ -7,10 +7,12 @@ import bs4
 import requests
 from stream_unzip import stream_unzip
 
+from .. import const
+
 
 class DGTDownloader:
     def __init__(self):
-        self.unzip_chunk_size = 65536
+        self.unzip_chunk_size = const.DEFAULT_DOWNLOAD_CHUNK_SIZE
         self.tmp_path = pathlib.Path(tempfile.gettempdir()) / "dgtparser"
         self.bs4_features = "html.parser"
 
@@ -29,7 +31,6 @@ class DGTDownloader:
             day: Optional[int] = None,
             path: Union[pathlib.Path, str, None] = None
     ) -> pathlib.Path:
-        # TODO Fix download matriculaciones per day
         if path and isinstance(path, str):
             path = pathlib.Path(path)
 
@@ -61,24 +62,32 @@ class DGTDownloader:
         self._get_viewstate_1_vehiculos()
         self._get_viewstate_2_vehiculos_matriculaciones()
         self._get_viewstate_3_microdatos()
+        if not day:
+            self._get_viewstate_4_year(year)
 
         payload = {
             "configuracionInfPersonalizado": "configuracionInfPersonalizado",
-            "configuracionInfPersonalizado:filtroDiario": "",
-            "configuracionInfPersonalizado:filtroMesAnyo": str(year),
-            "configuracionInfPersonalizado:filtroMesMes": str(month),
             "javax.faces.ViewState": self._last_viewstate,
         }
 
+        # download by day
         if day:
-            payload["configuracionInfPersonalizado:j_id115"] = "Descargar"
-            payload["configuracionInfPersonalizado:filtroDiario"] = f"{day:02d}/{month:02d}/{year}"
-            filtro_year = year
-            if filtro_year == datetime.date.today().year:
-                filtro_year -= 1
-            payload["configuracionInfPersonalizado:filtroMesAnyo"] = str(filtro_year)
+            prev_month = datetime.date.today().replace(day=1) - datetime.timedelta(days=1)
+            payload.update({
+                "configuracionInfPersonalizado:j_id115": "Descargar",
+                "configuracionInfPersonalizado:filtroDiario": f"{day:02d}/{month:02d}/{year}",
+                "configuracionInfPersonalizado:filtroMesMes": str(prev_month.month),
+                "configuracionInfPersonalizado:filtroMesAnyo": str(prev_month.year),
+            })
+
+        # download by month
         else:
-            payload["configuracionInfPersonalizado:j_id131"] = "Descargar"
+            payload.update({
+                "configuracionInfPersonalizado:j_id131": "Descargar",
+                "configuracionInfPersonalizado:filtroDiario": "",
+                "configuracionInfPersonalizado:filtroMesMes": str(month),
+                "configuracionInfPersonalizado:filtroMesAnyo": str(year),
+            })
 
         response = self.session.post(
             "https://sedeapl.dgt.gob.es/WEB_IEST_CONSULTA/microdatos.faces",
@@ -88,7 +97,7 @@ class DGTDownloader:
         self._validate_response(response)
 
         for chunk in self._unzip_stream_response(response):
-            yield chunk.decode("iso-8859-1")
+            yield chunk.decode(const.FILE_ENCODING)
 
     def _get_viewstate_0(self):
         response = self.session.get("https://sedeapl.dgt.gob.es/WEB_IEST_CONSULTA/categoria.faces")
@@ -130,6 +139,25 @@ class DGTDownloader:
         )
         self._parse_viewstate(response)
 
+    def _get_viewstate_4_year(self, year: int):
+        """Called after choosing a year, for filtering by month.
+        """
+        payload = {
+            "": "",
+            "AJAXREQUEST": "_viewRoot",
+            "configuracionInfPersonalizado": "configuracionInfPersonalizado",
+            "configuracionInfPersonalizado:filtroDiario": "",
+            "configuracionInfPersonalizado:filtroMesAnyo": str(year),
+            "configuracionInfPersonalizado:filtroMesMes": "1",
+            "configuracionInfPersonalizado:j_id127": "configuracionInfPersonalizado:j_id127",
+            "javax.faces.ViewState": self._last_viewstate,
+        }
+        response = self.session.post(
+            url="https://sedeapl.dgt.gob.es/WEB_IEST_CONSULTA/microdatos.faces",
+            data=payload,
+        )
+        self._parse_viewstate(response)
+
     def _validate_response(self, response: requests.Response):
         response.raise_for_status()
         content_type = response.headers.get("Content-Type", "")
@@ -153,14 +181,12 @@ class DGTDownloader:
             return error_li.text
 
     def _unzip_stream_response(self, response: requests.Response) -> Generator[bytes, None, None]:
-        files_read = 0
-        for _, _, file_chunks in stream_unzip(response.iter_content(chunk_size=self.unzip_chunk_size)):
-            if files_read > 0:
-                break
+        response_iterator = response.iter_content(chunk_size=self.unzip_chunk_size)
+        for _, _, file_chunks_iterator in stream_unzip(response_iterator):
+            # Only a single txt file expected in the zip
 
-            files_read += 1
             buffer = b""
-            for chunk in file_chunks:  # type: bytes
+            for chunk in file_chunks_iterator:  # type: bytes
                 buffer += chunk
                 while b"\n" in buffer:
                     line, buffer = buffer.split(b"\n", 1)
@@ -169,3 +195,5 @@ class DGTDownloader:
 
             if buffer:
                 yield buffer
+
+            break
