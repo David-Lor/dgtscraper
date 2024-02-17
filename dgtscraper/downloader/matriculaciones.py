@@ -29,7 +29,6 @@ class DGTDownloader:
             day: Optional[int] = None,
             path: Union[pathlib.Path, str, None] = None
     ) -> pathlib.Path:
-        # TODO Fix download matriculaciones per day
         if path and isinstance(path, str):
             path = pathlib.Path(path)
 
@@ -61,6 +60,8 @@ class DGTDownloader:
         self._get_viewstate_1_vehiculos()
         self._get_viewstate_2_vehiculos_matriculaciones()
         self._get_viewstate_3_microdatos()
+        if not day:
+            self._get_viewstate_4_year(year)
 
         payload = {
             "configuracionInfPersonalizado": "configuracionInfPersonalizado",
@@ -130,6 +131,24 @@ class DGTDownloader:
         )
         self._parse_viewstate(response)
 
+    def _get_viewstate_4_year(self, year: int):
+        """Called after choosing a year, for filtering by month.
+        """
+        payload = {
+            "AJAXREQUEST": "_viewRoot",
+            "configuracionInfPersonalizado": "configuracionInfPersonalizado",
+            "configuracionInfPersonalizado:filtroDiario": "",
+            "configuracionInfPersonalizado:filtroMesAnyo": str(year),
+            "configuracionInfPersonalizado:filtroMesMes": "1",
+            "configuracionInfPersonalizado:j_id127": "configuracionInfPersonalizado:j_id127",
+            "javax.faces.ViewState": self._last_viewstate,
+        }
+        response = self.session.post(
+            url="https://sedeapl.dgt.gob.es/WEB_IEST_CONSULTA/microdatos.faces",
+            data=payload,
+        )
+        self._parse_viewstate(response)
+
     def _validate_response(self, response: requests.Response):
         response.raise_for_status()
         content_type = response.headers.get("Content-Type", "")
@@ -153,14 +172,12 @@ class DGTDownloader:
             return error_li.text
 
     def _unzip_stream_response(self, response: requests.Response) -> Generator[bytes, None, None]:
-        files_read = 0
-        for _, _, file_chunks in stream_unzip(response.iter_content(chunk_size=self.unzip_chunk_size)):
-            if files_read > 0:
-                break
+        response_iterator = response.iter_content(chunk_size=self.unzip_chunk_size)
+        for _, _, file_chunks_iterator in stream_unzip(response_iterator):
+            # Only a single txt file expected in the zip
 
-            files_read += 1
             buffer = b""
-            for chunk in file_chunks:  # type: bytes
+            for chunk in file_chunks_iterator:  # type: bytes
                 buffer += chunk
                 while b"\n" in buffer:
                     line, buffer = buffer.split(b"\n", 1)
@@ -169,3 +186,5 @@ class DGTDownloader:
 
             if buffer:
                 yield buffer
+
+            break
